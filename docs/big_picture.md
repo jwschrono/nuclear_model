@@ -22,22 +22,18 @@
 - `features/sd_features.py` / `features/regime_features.py`: join S&D with UxC price features and regime/event dummies.
 - `models/regression.py`: explainable log-linear regression with interactions; `models/system.py`: orchestrator that runs scenarios end-to-end and applies price models.
 
-## Current datasets in `datasets/` (quick audit)
-- `nuclear_energy_overview_eia.csv` (614 rows): US nuclear capacity/generation by month; cols: year, month, operable units, capacity, generation, share, capacity factor.
-- `number_of_plants_producing_uranium_in_us.csv` (24 rows): US facilities counts by type per year; useful for US supply context.
-- `power_plant_database_global.csv` (~35k rows): global power plant registry (non-nuclear too). Columns include fuel, capacity, geolocation, commissioning year, generation by year (2013–2019). Could filter for nuclear to seed reactor master where PRIS is missing.
-- `rates_death_from_energy_production_per_twh.csv` (9 rows): risk comparisons (meta only).
-- `reactors_parent_companies.csv` (95 rows): plant/unit to parent utility mapping (US-centric) with website/year.
-- `uranium_production_summary_us.csv` (15 rows): US drilling/production/shipping/employment by year.
-- `uranium_purchase_price_us.csv` (22 rows): US reactor purchases by origin/supplier/contract tenor; delivery-year level.
-- `us_nuclear_generating_statistics_1971_2021.csv` (51 rows): US generation, share, capacity factor, summer capacity by year.
-- `world_electricity_generation.csv` (63 rows): monthly global nuclear generation and share.
-- `world_nuclear_energy_generation.csv` (9.6k rows): country–year nuclear TWh and share; good seed for reactor demand backcast if no unit-level data.
+## Current datasets (quick audit)
+- `external/GeoNuclearData` (from https://github.com/cristianst85/GeoNuclearData): unit-level nuclear plant tables with metadata:
+  - `data/csv/raw/1-countries.csv` (258 rows): country code/name.
+  - `.../2-nuclear_power_plant_status_type.csv` (12 rows): status enums.
+  - `.../3-nuclear_reactor_type.csv` (24 rows): reactor type + description.
+  - `.../4-nuclear_power_plants.csv` (804 rows): plant units with name, lat/lon, reactor type/model, status, capacity, operational dates, IAEA ID.
+- Use these to seed `reactor_master`; still need generation history (PRIS) to compute reload demand.
 
-## How these fit demand-first build
-- Near-term priority: reactor demand. Use `world_nuclear_energy_generation.csv` for a fast country-level demand backcast; later replace with unit-level PRIS tables. US-specific generation and capacity factor files help cross-check.
+## How this fits demand-first build
+- Near-term: build `reactor_master` from GeoNuclearData plus PRIS generation exports (to be added) to derive product TU; apply enrichment math for feed/SWU.
 - Price side: UxC loader already exists; ensure annual features align with S&D panel.
-- Supply data in this folder is thin for global mines/secondary; we’ll need external WNA/UxC/Red Book tables later. US production and facility counts can seed a US-only primary/secondary stub.
+- Supply data still needed externally (mines/secondary/inventories); add WNA/Red Book/UxC tables later.
 
 ## Suggested next steps (demand focus)
 1) Build a country-level demand backcast using `world_nuclear_energy_generation.csv` and `us_nuclear_generating_statistics_1971_2021.csv` to compute implied TU (apply default fuel params per reactor type/region). Produce annual product TU and feed TU + SWU via fixed tails for now.
